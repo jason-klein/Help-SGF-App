@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HelpSGF.Services;
 using HelpSGF.Models;
@@ -7,6 +7,7 @@ using Xamarin.Forms;
 using System.Collections.ObjectModel;
 using HelpSGF.ViewModels;
 using System.Threading.Tasks;
+using HelpSGF.Models.Search;
 
 namespace HelpSGF.Views
 {
@@ -14,7 +15,7 @@ namespace HelpSGF.Views
     {
         public string Tester { get; set; }
         public DataService dataService = new DataService();
-        ObservableCollection<Location> Locations = new ObservableCollection<Location>();
+        ObservableCollection<LocationSearchResultItem> LocationSearchResultItems = new ObservableCollection<LocationSearchResultItem>();
 
         ResultsViewModel viewModel;
 
@@ -34,14 +35,17 @@ namespace HelpSGF.Views
 
         void OnLocationSelected(object sender, SelectedItemChangedEventArgs args)
         {
-            if (!(args.SelectedItem is Location locationSelection))
+            if (!(args.SelectedItem is LocationSearchResultItem locationSelection))
                 return;
 
-            Console.WriteLine(locationSelection.Name + " Tapped");
-            //await Navigation.PushAsync(new ItemDetailPage(new ItemDetailViewModel(item)));
-            //await Navigation.PushAsync(new LocationDetailPage(new LocationDetailPage(item)));
-
-            //GoToLocationPageAsync(locationSelection.NiceURL);
+            try
+            {
+                ((ListView)sender).SelectedItem = null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
 
             Navigation.PushAsync(new LocationDetailPage(locationSelection.NiceURL));
         }

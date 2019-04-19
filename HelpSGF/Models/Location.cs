@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using static HelpSGF.Utilities.JsonConverters;
 
 namespace HelpSGF.Models
 {
@@ -20,7 +21,9 @@ namespace HelpSGF.Models
         public double Latitude { get; set; }
         public double Longitude { get; set; }
         public double Index { get; set; }
+
         public List<ServiceTypeDetail> ServiceTypeDetails { get; set; }
+        public List<ServiceTypeCategories> Categories { get; set; }
         public List<Contact> contacts { get; set; }
 
 
@@ -66,13 +69,26 @@ namespace HelpSGF.Models
         [JsonProperty("nice_url")]
         public string NiceURL { get; set; }
 
-
-        public string[] ServiceTypes { get; set; }
+        [JsonConverter(typeof(StringTypeOrArrayConverter<string>))]
+        public List<string> ServiceTypes { get; set; }
 
         public static implicit operator Location(Task<Location> v)
         {
             throw new NotImplementedException();
         }
+
+        public class Category
+        {
+            public string serviceType { get; set; }
+        }
+
+        public class CategoryDetail
+        {
+            public List<Category> category { get; set; }
+            public string description { get; set; }
+        }
+
+        public List<CategoryDetail> CategoryDetails { get; set; }
     }
 
     public class ServiceTypeDetail
@@ -81,10 +97,14 @@ namespace HelpSGF.Models
         public string Detail { get; set; }
     }
 
+    public class ServiceTypeCategories
+    {
+        public string ServiceType { get; set; }
+    }
+
     public class Contact
     {
         public string ContactType { get; set; }
         public string ContactData { get; set; }
     }
-
 }

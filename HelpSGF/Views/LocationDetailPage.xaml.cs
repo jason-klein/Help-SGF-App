@@ -1,11 +1,14 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using HelpSGF.Models;
 using HelpSGF.Services;
 using HelpSGF.ViewModels;
+using LabelHtml.Forms.Plugin.Abstractions;
 using Xamarin.Forms;
+using Xamarin.Forms.Maps;
 
 namespace HelpSGF.Views
 {
@@ -17,6 +20,7 @@ namespace HelpSGF.Views
         //private int serviceGridColumnCount = 0;
         //private int serviceGridRowCount = 0;
         private int serviceItemCount = 0;
+        private int categoryItemCount = 0;
 
         public LocationDetailPage(string url = "")
         {
@@ -49,14 +53,49 @@ namespace HelpSGF.Views
 
             if(!viewModel.Location.Latitude.Equals(0) && !viewModel.Location.Longitude.Equals(0))
             {
-                // Embedded Map View
-                MapWebView.Source = viewModel.MapURL;
+                try
+                {
+                    var position = new Position(viewModel.Location.Latitude, viewModel.Location.Longitude);
+
+                    var map = new Map(MapSpan.FromCenterAndRadius(position, Distance.FromMiles(0.1)))
+                    {
+                        //IsShowingUser = true,
+                        HeightRequest = 100,
+                        WidthRequest = 960,
+                        VerticalOptions = LayoutOptions.FillAndExpand,
+                        MapType = MapType.Street
+                    };
+
+                    var pin = new Pin
+                    {
+                        Address = viewModel.Location.FormattedAddress,
+                        Label = viewModel.Location.Name,
+                        Type = PinType.SearchResult,
+                        Position = position
+                    };
+
+                    map.Pins.Add(pin);
+
+                    MapView.Children.Add(map);
+
+                    // Add to contact list so the directions link is added with
+                    // the rest of the contact entries.
+                    viewModel.Location.contacts.Insert(0, new Contact
+                    {
+                        ContactData = viewModel.Location.FormattedAddress,
+                        ContactType = "Directions",
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
             }
 
-            // Service List Grid
+            // Category List Grid
             try
             {
-                if (viewModel.Location.ServiceTypes != null)
+                if (viewModel.Location.ServiceTypes != null && !viewModel.Location.Categories.Any())
                 {
                     foreach (string service in viewModel.Location.ServiceTypes)
                     {
@@ -69,6 +108,87 @@ namespace HelpSGF.Views
                         serviceItemCount++;
                     }
                 }
+
+                else if (viewModel.Location.Categories.Any())
+                {
+                    // If new values are loaded, hide the old grid.
+                    ServiceGrid.IsVisible = false;
+                    ServicesLabel.IsVisible = false;
+
+                    CategoriesLabel.IsVisible = true;
+                    CategoriesGrid.IsVisible = true;
+
+                    var categories = new List<string>();
+
+                    foreach (var category in viewModel.Location.Categories)
+                    {
+                        if(categories.Contains(category.ServiceType))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            categories.Add(category.ServiceType);
+                        }
+
+                        var column = categoryItemCount % 2 == 0 ? 0 : 1;
+
+                        var label = new Label();
+                        label.Text = "•  " + category.ServiceType;
+                        label.FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label));
+                        CategoriesGrid.Children.Add(label, column, (int)Math.Floor((double)categoryItemCount / 2));
+
+                        categoryItemCount++;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+
+            // Category Details List
+            try
+            {
+                if(viewModel.Location.CategoryDetails.Any())
+                {
+                    CategoryDetailsLabel.IsVisible = true;
+                    CategoryDetailsList.IsVisible = true;
+
+                    foreach (var categoryDetails in viewModel.Location.CategoryDetails)
+                    {
+                        var titles = new List<string>();
+
+                        foreach (var category in categoryDetails.category)
+                        {
+                            if (!titles.Contains(category.serviceType))
+                            {
+                                titles.Add(category.serviceType);
+                            }
+                        }
+
+                        var title = string.Join(", ", titles).Trim();
+                        var description = categoryDetails.description;
+
+
+                        var titleLabel = new Label()
+                        {
+                            FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label)),
+                            FontAttributes = FontAttributes.Bold,
+                            Margin = new Thickness(0, 20, 0, 0),
+                            Text = title
+                        };
+
+                        var htmlDescription = new HtmlLabel()
+                        {
+                            Text = description,
+                            FontSize = Device.GetNamedSize(NamedSize.Small, typeof(Label))
+                    };
+
+                        CategoryDetailsList.Children.Add(titleLabel);
+                        CategoryDetailsList.Children.Add(htmlDescription);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -78,7 +198,7 @@ namespace HelpSGF.Views
             // Address
             AddressLabel.Text = viewModel.Location.FormattedAddress;
 
-            if(viewModel.Location.contacts != null)
+            if (viewModel.Location.contacts != null)
             {
                 try
                 {
@@ -161,6 +281,41 @@ namespace HelpSGF.Views
                             });
                         }
 
+                        // This "contact type" is manually added when a map
+                        // is rendered. The ContactData is a string with the 
+                        // location address
+                        if(contactType == "Directions")
+                        {
+                            imageIcon = "directions.png";
+
+                            var address = contact.ContactData;
+                            description.Text = "Open in maps";
+
+                            description.GestureRecognizers.Add(new TapGestureRecognizer
+                            {
+                                Command = new Command(() => {
+                                    try
+                                    {
+                                        switch (Device.RuntimePlatform)
+                                        {
+                                            case Device.iOS:
+                                                Device.OpenUri(
+                                                  new Uri(string.Format("http://maps.apple.com/?q={0}", WebUtility.UrlEncode(address))));
+                                                break;
+                                            case Device.Android:
+                                                Device.OpenUri(
+                                                  new Uri(string.Format("geo:0,0?q={0}", WebUtility.UrlEncode(address))));
+                                                break;
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine(ex.Message);
+                                    }
+                                })
+                            });
+                        }
+
                         if (contactType == "Phone")
                         {
                             imageIcon = "call.png";
@@ -183,8 +338,37 @@ namespace HelpSGF.Views
 
                         // Facebook is a weird one. These two actually need to combine
                         // to make one label/link
-                        if (contactType == "Facebook URL") { imageIcon = "facebook.png"; }
-                        if (contactType == "Facebook Name") { imageIcon = "facebook.png"; }
+                        if (contactType == "Facebook Name") { continue; }
+
+                        if (contactType == "Facebook URL") { 
+                            imageIcon = "facebook.png";
+
+                            var facebookNameEntry = viewModel.Location.contacts.Where(c => c.ContactType == "Facebook Name");
+                            description.Text = facebookNameEntry.Any() ? facebookNameEntry.First().ContactData : location.Name;
+                            var linkUrl = contact.ContactData;
+
+                            try
+                            {
+                                description.GestureRecognizers.Add(new TapGestureRecognizer
+                                {
+                                    Command = new Command(() => {
+                                        try
+                                        {
+                                            Device.OpenUri(new Uri(linkUrl));
+                                        }
+                                        catch (Exception ex)
+                                        {
+                                            Console.WriteLine(ex.Message);
+                                        }
+                                    })
+                                });
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine(ex.Message);
+                            }
+                        }
+
 
                         var contentStackLayout = new StackLayout { Padding = new Thickness { Left = 20, Top = 20 } };
                         var lineStackLayout = new StackLayout { Padding = new Thickness { Left = 20, Right = 20 }, Margin = new Thickness { Top = 10 } };

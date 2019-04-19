@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using HelpSGF.Models;
 using HelpSGF.Views;
 using HelpSGF.ViewModels;
-
+using System.Linq;
 using Xamarin.Forms;
 using HelpSGF.Services;
 
@@ -18,24 +18,40 @@ namespace HelpSGF.Views
         {
             InitializeComponent();
 
-            Title = vm.MainCategory.Name;
+            Title = vm.MainCategoryName;
 
             NavigationPage.SetBackButtonTitle(this, "");
 
             BindingContext = viewModel = vm;
         }
 
-        void Handle_ItemSelected(object sender, Xamarin.Forms.SelectedItemChangedEventArgs e)
+        void Handle_ItemSelected(object sender, SelectedItemChangedEventArgs args)
         {
-            var category = (Category)e.SelectedItem;
-            var locations = dataService.FilterLocations(category.ServiceType);
-
-            var resultsViewModel = new ResultsViewModel
+            if(((ListView)sender).SelectedItem != null)
             {
-                Locations = locations
-            };
+                try
+                {
+                    var category = (KeyValuePair<string, int>)args.SelectedItem;
+                    var locations = dataService.FilterLocations(viewModel.MainCategoryName + " > " + category.Key);
 
-            Navigation.PushAsync(new LocationsPage(resultsViewModel));
+                    var resultsViewModel = new ResultsViewModel
+                    {
+                        LocationSearchResultItems = locations
+                    };
+
+                    ((ListView)sender).SelectedItem = null;
+
+                    Navigation.PushAsync(new LocationsPage(resultsViewModel));
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            }
+            else
+            {
+                Console.WriteLine("Nothing selected here");
+            }
         }
     }
 

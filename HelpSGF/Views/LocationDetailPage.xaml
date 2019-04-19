@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml" 
     x:Class="HelpSGF.Views.LocationDetailPage"
     xmlns:htmlLabel="clr-namespace:LabelHtml.Forms.Plugin.Abstractions;assembly=HtmlLabel.Forms.Plugin"
+    xmlns:maps="clr-namespace:Xamarin.Forms.Maps;assembly=Xamarin.Forms.Maps"
     >
     <ContentPage.Content>
         <ScrollView>
@@ -11,16 +12,10 @@
                 <StackLayout Padding="20, 15">
                     <Label FontSize="20" FontAttributes="Bold" Text="{Binding Location.Name}"></Label>
                     
-                    <!--<Label Margin="0, 5, 0, 0">
-                        Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Nullam id dolor id nibh ultricies vehicula ut id elit. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.
-                    </Label>-->
-                    
-                    <!--<WebView x:Name="DescriptionWebView" Margin="0, 5, 0, 0" WidthRequest="200" HeightRequest="200"/>-->
-                    
                     <htmlLabel:HtmlLabel Text="{Binding Location.Description}"/>
                         
                     
-                    <Label FontSize="18" TextColor="#813C27" FontAttributes="Bold" Margin="0, 20, 0, 0">
+                    <Label FontSize="18" TextColor="#813C27" FontAttributes="Bold" Margin="0, 20, 0, 0" x:Name="ServicesLabel">
                         Services
                     </Label>
                     
@@ -32,6 +27,25 @@
                             </Grid.ColumnDefinitions>
                         </Grid>
                     </StackLayout>
+                    
+                    <Label FontSize="18" TextColor="#813C27" FontAttributes="Bold" Margin="0, 20, 0, 0" x:Name="CategoriesLabel" IsVisible="false">
+                        Categories
+                    </Label>
+                    
+                    <StackLayout>
+                        <Grid x:Name="CategoriesGrid" IsVisible="false">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width=".5*" />
+                                <ColumnDefinition Width=".5*" />
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </StackLayout>
+                    
+                    <Label FontSize="18" TextColor="#813C27" FontAttributes="Bold" Margin="0, 20, 0, 0" x:Name="CategoryDetailsLabel" IsVisible="false">
+                        Category Details
+                    </Label>
+                    
+                    <StackLayout x:Name="CategoryDetailsList" IsVisible="false"></StackLayout>
                 </StackLayout>
                 
                 <StackLayout>
@@ -40,7 +54,8 @@
                             <RowDefinition Height="200" />
                         </Grid.RowDefinitions>
                         
-                        <WebView x:Name="MapWebView" Grid.Row="0" />
+                        <WebView x:Name="MapWebView" Grid.Row="0" IsVisible="false" />
+                        <StackLayout x:Name="MapView"></StackLayout>
                     </Grid>
                 </StackLayout>
                 
